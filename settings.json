@@ -1,0 +1,11 @@
+{
+    "total_capital": 100000.0,
+    "risk_percent": 1.0,
+    "max_pos_percent": 10.0,
+    "weight_ma": 30,
+    "weight_rsi": 20,
+    "weight_volume": 15,
+    "weight_macd": 15,
+    "weight_bb": 10,
+    "weight_adx": 10
+}

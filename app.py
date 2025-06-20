@@ -1,24 +1,33 @@
 # =================================================================
-# === Kullanıcı Dostu Kripto Analiz Uygulaması - app.py (OHLCV) ===
+# === Kullanıcı Dostu Kripto Analiz Uygulaması - app.py ===
 # =================================================================
 from flask import Flask, render_template, request, redirect, url_for
 from apscheduler.schedulers.background import BackgroundScheduler
 import pandas as pd
 import logging
 import time
+import json
 
 logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.ERROR)
 
 from data_fetcher import get_all_try_symbols, fetch_ohlcv_data
-from database import init_db, save_settings, load_settings
 from analyzer import calculate_indicators
 
+# Varsayılan ayarları bir değişkende tutalım
 DEFAULT_SETTINGS = {
     'total_capital': 100000.0, 'risk_percent': 1.0, 'max_pos_percent': 10.0,
     'weight_ma': 30, 'weight_rsi': 20, 'weight_volume': 15,
     'weight_macd': 15, 'weight_bb': 10, 'weight_adx': 10
 }
+
+def load_settings():
+    """Ayarları settings.json dosyasından yükler."""
+    try:
+        with open('settings.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return DEFAULT_SETTINGS
 
 app = Flask(__name__)
 
@@ -30,13 +39,13 @@ def run_full_analysis():
     global analysis_data, market_status
     print("Tam analiz döngüsü başlıyor...")
     
-    settings = load_settings(DEFAULT_SETTINGS)
+    settings = load_settings()
     symbols = get_all_try_symbols()
     all_results = []
 
     for i, symbol_with_slash in enumerate(symbols):
         print(f"Analiz ediliyor: {symbol_with_slash} ({i+1}/{len(symbols)})")
-        time.sleep(0.2) 
+        time.sleep(0.1)
         
         coin_df = fetch_ohlcv_data(symbol_with_slash, timeframe='5m', limit=100)
         
@@ -47,39 +56,21 @@ def run_full_analysis():
     
     if all_results:
         analysis_data = pd.DataFrame(all_results)
-        print(f"Analiz tamamlandı. {len(analysis_data)} adet uygun coin bulundu.")
-    else:
-        analysis_data = pd.DataFrame()
-        print("Analiz tamamlandı. Uygun coin bulunamadı.")
     
+    # Piyasa durumu
     btc_df = fetch_ohlcv_data('BTC/TRY', timeframe='5m', limit=50)
     if btc_df is not None and not btc_df.empty:
         btc_price = btc_df['close'].iloc[-1]
         btc_ma50 = btc_df['close'].mean()
         if btc_price > btc_ma50:
-            market_status = {'text': 'PİYASA YÜKSELİŞTE - ALIMA UYGUN', 'color': 'success'}
+            market_status = {'text': 'PİYASA YÜKSELİŞTE', 'color': 'success'}
         else:
-            market_status = {'text': 'PİYASA DÜŞÜŞTE - RİSKLİ', 'color': 'danger'}
+            market_status = {'text': 'PİYASA DÜŞÜŞTE', 'color': 'danger'}
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def dashboard():
-    if request.method == 'POST':
-        settings = load_settings(DEFAULT_SETTINGS)
-        form = request.form
-        for key in settings:
-            try:
-                if isinstance(settings[key], float):
-                    settings[key] = float(form.get(key, settings[key]))
-                else:
-                    settings[key] = int(form.get(key, settings[key]))
-            except (ValueError, TypeError):
-                print(f"Formda geçersiz değer: {key}")
-        
-        save_settings(settings)
-        run_full_analysis()
-        return redirect(url_for('dashboard'))
-
-    settings = load_settings(DEFAULT_SETTINGS)
+    """Ana dashboard sayfasını gösterir. Artık POST işlemi yok."""
+    settings = load_settings()
     sorted_data_list = []
     if not analysis_data.empty and 'score' in analysis_data.columns:
         sorted_data_list = analysis_data.sort_values(by='score', ascending=False).to_dict('records')
@@ -94,7 +85,6 @@ def guide():
     return render_template('guide.html')
 
 if __name__ == '__main__':
-    init_db()
     run_full_analysis()
 
     scheduler = BackgroundScheduler(daemon=True)
