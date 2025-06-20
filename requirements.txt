@@ -13,6 +13,7 @@ click==8.2.1
 colorama==0.4.6
 cryptography==45.0.4
 Flask==3.1.1
+Flask-BasicAuth==0.2.0
 frozenlist==1.7.0
 gunicorn==23.0.0
 idna==3.10
