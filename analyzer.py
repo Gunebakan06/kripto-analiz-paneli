@@ -1,5 +1,5 @@
 # =================================================================
-# === Gelişmiş Analiz Motoru (analyzer.py) - OHLCV Uyumlu ===
+# === Gelişmiş Analiz Motoru (analyzer.py) - Nihai Sürüm ===
 # =================================================================
 import pandas as pd
 import pandas_ta as ta
@@ -9,6 +9,10 @@ def calculate_indicators(coin_df, settings):
     Tek bir coin'in OHLCV DataFrame'ini alıp tüm analizleri yapar.
     """
     try:
+        # Analiz için yeterli veri olup olmadığını kontrol et
+        if len(coin_df) < 50:
+            return None # MA50 gibi göstergeler için yeterli veri yoksa atla
+            
         # --- TÜM TEKNİK İNDİKATÖRLERİ HESAPLA ---
         coin_df.ta.ema(length=20, append=True)
         coin_df.ta.ema(length=50, append=True)
@@ -19,8 +23,9 @@ def calculate_indicators(coin_df, settings):
         coin_df.ta.adx(length=14, append=True)
         
         last_row = coin_df.iloc[-1]
+        # Herhangi bir kritik değerin boş (NaN) gelip gelmediğini kontrol et
         if last_row.isnull().any():
-            return None # Herhangi bir indikatör hesaplanamadıysa bu coini atla
+            return None # Eğer herhangi bir gösterge NaN ise, bu coini atla
 
         anlik_fiyat = last_row['close']
 
@@ -65,5 +70,6 @@ def calculate_indicators(coin_df, settings):
             'bb_lower': last_row['BBL_20_2.0'], 'bb_upper': last_row['BBU_20_2.0'],
             'adx': last_row['ADX_14']
         }
-    except Exception:
+    except Exception as e:
+        # print(f"Uyarı: {coin_df['symbol'].iloc[0]} için analiz hatası: {e}")
         return None
