@@ -1,30 +1,30 @@
-# =================================================================
-# === Veritabanı Yönetimi (database.py) - Sadece Ayarlar İçin ===
-# =================================================================
 import sqlite3
+import pandas as pd
 import json
-
-# Render.com'da ortam değişkeni olarak ayarlanacak, 
-# yerelde ise 'settings.db' adıyla oluşturulacak.
 import os
-DB_FILE = os.environ.get('DATABASE_URL', 'sqlite:///settings.db').replace('sqlite:///', '')
 
+# Render'da ortam değişkeni olarak ayarlanacak, yerelde ise 'data' klasörü oluşturulacak.
+DATA_DIR = os.environ.get('RENDER_DATA_DIR', 'data')
+DB_FILE = os.path.join(DATA_DIR, 'settings.db')
+RESULTS_FILE = os.path.join(DATA_DIR, 'analysis_results.json')
+STATUS_FILE = os.path.join(DATA_DIR, 'market_status.json')
 
 def init_db():
-    """Sadece ayarlar tablosunu oluşturan veritabanı başlatma fonksiyonu."""
+    """Gerekli klasörü ve ayarlar veritabanını oluşturur."""
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
     conn = sqlite3.connect(DB_FILE)
+    conn.execute('PRAGMA journal_mode=WAL;') # Eş zamanlı erişim için
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
+            key TEXT PRIMARY KEY, value TEXT NOT NULL
         )
     ''')
     conn.commit()
     conn.close()
 
 def save_settings(settings_dict):
-    """Kullanıcı ayarlarını veritabanına kaydeder."""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", 
@@ -33,19 +33,43 @@ def save_settings(settings_dict):
     conn.close()
 
 def load_settings(default_settings):
-    """Kullanıcı ayarlarını veritabanından yükler. Yoksa varsayılanı kullanır."""
-    init_db() # Tablonun var olduğundan emin ol
+    init_db()
     try:
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
         cursor.execute("SELECT value FROM settings WHERE key = ?", ('analysis_settings',))
         row = cursor.fetchone()
         conn.close()
-        if row:
-            return json.loads(row[0])
-        else:
-            # Veritabanında ayar yoksa, varsayılanı kaydet ve döndür
-            save_settings(default_settings)
-            return default_settings
+        if row: return json.loads(row[0])
     except:
-        return default_settings
+        pass
+    
+    save_settings(default_settings)
+    return default_settings
+
+def save_analysis_results(df_analysis):
+    """Analiz sonuçlarını bir JSON dosyasına kaydeder."""
+    df_analysis.to_json(RESULTS_FILE, orient='records', indent=4)
+
+def get_analysis_results():
+    """Analiz sonuçlarını JSON dosyasından okur."""
+    try:
+        return pd.read_json(RESULTS_FILE)
+    except (FileNotFoundError, ValueError):
+        return pd.DataFrame()
+
+def update_market_status(status_text):
+    color = 'success' if 'YÜKSELİŞTE' in status_text else 'danger'
+    status = {'text': status_text, 'color': color}
+    with open(STATUS_FILE, 'w') as f:
+        json.dump(status, f)
+
+def get_market_status():
+    """Piyasa durumunu JSON dosyasından okur."""
+    try:
+        with open(STATUS_FILE, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {'text': 'Henüz Belirlenmedi', 'color': 'secondary'}
+
+# Eski veri çekme ve temizleme fonksiyonları artık kullanılmadığı için kaldırıldı.
