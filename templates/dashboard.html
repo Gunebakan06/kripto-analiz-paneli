@@ -14,7 +14,7 @@
             font-family: 'Inter', sans-serif;
         }
         .card {
-            border: 1px solid #e9ecef; /* Sınırları belirginleştir */
+            border: 1px solid #e9ecef;
             border-radius: 0.75rem;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
             height: 100%; 
@@ -96,54 +96,57 @@
                     <form method="POST" action="/">
                         <div class="row g-4">
                             <!-- SOL SÜTUN: Piyasa Durumu ve Risk Yönetimi -->
-                            <div class="col-lg-4">
-                                <h6 class="settings-section-header">Piyasa Genel Durumu</h6>
-                                <div class="text-center p-3 rounded bg-light">
-                                    <h5 class="card-title text-{{ market_status.color }}">{{ market_status.text }}</h5>
-                                    <p class="small text-muted mb-0">(BTC/TRY MA50'ye Göre)</p>
-                                </div>
-                                <hr class="my-4">
-                                <h6 class="settings-section-header">Risk & Sermaye</h6>
-                                <div class="mb-3">
-                                    <label for="total_capital" class="form-label">Toplam Sermaye (TL)</label>
-                                    <input type="number" step="1000" class="form-control" id="total_capital" name="total_capital" value="{{ settings.total_capital }}">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="risk_percent" class="form-label">İşlem Başına Risk (%)</label>
-                                    <input type="number" step="0.1" class="form-control" id="risk_percent" name="risk_percent" value="{{ settings.risk_percent }}">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="max_pos_percent" class="form-label">Maks. Pozisyon (%)</label>
-                                    <input type="number" step="1" class="form-control" id="max_pos_percent" name="max_pos_percent" value="{{ settings.max_pos_percent }}">
+                            <div class="col-lg-6">
+                                <div class="p-3 border rounded h-100">
+                                    <h6 class="settings-section-header">Piyasa Genel Durumu</h6>
+                                    <div class="text-center p-3 rounded bg-light mb-4">
+                                        <h5 class="card-title text-{{ market_status.color }}">{{ market_status.text }}</h5>
+                                        <p class="small text-muted mb-0">(BTC/TRY MA50'ye Göre)</p>
+                                    </div>
+                                    <h6 class="settings-section-header">Risk & Sermaye</h6>
+                                    <div class="mb-3">
+                                        <label for="total_capital" class="form-label">Toplam Sermaye (TL)</label>
+                                        <input type="number" step="1000" class="form-control" id="total_capital" name="total_capital" value="{{ settings.total_capital }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="risk_percent" class="form-label">İşlem Başına Risk (%)</label>
+                                        <input type="number" step="0.1" class="form-control" id="risk_percent" name="risk_percent" value="{{ settings.risk_percent }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="max_pos_percent" class="form-label">Maks. Pozisyon (%)</label>
+                                        <input type="number" step="1" class="form-control" id="max_pos_percent" name="max_pos_percent" value="{{ settings.max_pos_percent }}">
+                                    </div>
                                 </div>
                             </div>
                             
-                            <!-- ORTA VE SAĞ SÜTUNLAR: Puanlama Ağırlıkları -->
-                            <div class="col-lg-8">
-                                <h6 class="settings-section-header">
-                                    <span>Puanlama Ağırlıkları</span>
-                                    <small class="text-muted fw-normal">(Toplamları 100 olmalı)</small>
-                                </h6>
-                                <div class="row">
-                                    <div class="col-lg-6">
-                                        {% for key, label in [
-                                            ('weight_ma', 'MA Kesişimi'), ('weight_rsi', 'RSI Seviyesi'), ('weight_volume', 'Hacim Artışı')
-                                        ] %}
-                                        <div class="mb-3">
-                                            <label for="{{ key }}" class="form-label">{{ label }} (%)</label>
-                                            <input type="number" step="5" class="form-control" id="{{ key }}" name="{{ key }}" value="{{ settings[key] }}">
+                            <!-- SAĞ SÜTUN: Puanlama Ağırlıkları -->
+                            <div class="col-lg-6">
+                                <div class="p-3 border rounded h-100">
+                                    <h6 class="settings-section-header">
+                                        <span>Puanlama Ağırlıkları</span>
+                                        <small class="text-muted fw-normal">(Toplam 100 olmalı)</small>
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            {% for key, label in [
+                                                ('weight_ma', 'MA Kesişimi'), ('weight_rsi', 'RSI Seviyesi'), ('weight_volume', 'Hacim Artışı')
+                                            ] %}
+                                            <div class="mb-3">
+                                                <label for="{{ key }}" class="form-label">{{ label }} (%)</label>
+                                                <input type="number" step="5" class="form-control" id="{{ key }}" name="{{ key }}" value="{{ settings[key] }}">
+                                            </div>
+                                            {% endfor %}
                                         </div>
-                                        {% endfor %}
-                                    </div>
-                                    <div class="col-lg-6">
-                                        {% for key, label in [
-                                            ('weight_macd', 'MACD'), ('weight_bb', 'Bollinger Band'), ('weight_adx', 'ADX')
-                                        ] %}
-                                        <div class="mb-3">
-                                            <label for="{{ key }}" class="form-label">{{ label }} (%)</label>
-                                            <input type="number" step="5" class="form-control" id="{{ key }}" name="{{ key }}" value="{{ settings[key] }}">
+                                        <div class="col-md-6">
+                                            {% for key, label in [
+                                                ('weight_macd', 'MACD'), ('weight_bb', 'Bollinger Band'), ('weight_adx', 'ADX')
+                                            ] %}
+                                            <div class="mb-3">
+                                                <label for="{{ key }}" class="form-label">{{ label }} (%)</label>
+                                                <input type="number" step="5" class="form-control" id="{{ key }}" name="{{ key }}" value="{{ settings[key] }}">
+                                            </div>
+                                            {% endfor %}
                                         </div>
-                                        {% endfor %}
                                     </div>
                                 </div>
                             </div>
@@ -172,7 +175,7 @@
                                     <th>Parite</th><th>Fiyat</th><th>MA(20)</th><th>MA(50)</th><th>RSI</th><th>MACD</th><th>Sinyal</th><th>BB Alt</th><th>BB Üst</th><th>ADX</th><th>Volatilite</th><th>Stop</th><th>Pozisyon (TL)</th><th class="text-primary">Skor</th>
                                 </tr>
                             </thead>
-                            <tbody id="analysis-table-body" class="text-center align-middle">
+                            <tbody class="text-center align-middle">
                                 {% if coins %}
                                     {% for coin in coins %}
                                     <tr class="{% if coin.score >= 70 %}table-success{% elif coin.score >= 40 %}table-warning{% endif %}">
