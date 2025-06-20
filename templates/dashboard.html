@@ -20,15 +20,25 @@
             height: 100%; 
         }
         .card-header {
-            background-color: transparent;
+            background-color: #ffffff;
             border-bottom: 1px solid #e9ecef;
             padding: 1rem 1.25rem;
             font-weight: 600;
-            font-size: 1.0rem;
+            font-size: 1.1rem;
             color: #212529;
         }
         .table-hover tbody tr:hover {
             background-color: #eef2f5;
+        }
+        .form-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            font-weight: 600;
         }
         .main-header {
             display: flex;
@@ -55,10 +65,12 @@
              font-size: 0.85rem;
              vertical-align: middle;
         }
-        .settings-card .card-body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+        .settings-section-header {
+            color: #343a40;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #f0f2f5;
         }
     </style>
 </head>
@@ -74,29 +86,68 @@
 
     <!-- KONTROL PANELLERİ (ÜSTTE VE SİMETRİK) -->
     <div class="row g-4 mb-4">
-        <!-- SOL SÜTUN: Piyasa Durumu ve Risk Yönetimi -->
-        <div class="col-lg-6">
-            <div class="card settings-card">
-                <div class="card-header">Genel Durum ve Risk Ayarları</div>
-                <div class="card-body">
-                    <div class="text-center mb-4">
-                        <h6 class="text-muted">Piyasa Yönü (BTC'ye Göre)</h6>
-                        <div id="market-status-text" class="h5 mt-2 text-secondary">Yükleniyor...</div>
-                    </div>
-                    <hr>
-                    <h6 class="text-muted text-center mt-3">Strateji Ayarları</h6>
-                    <p class="small text-muted text-center">Bu ayarlar, projedeki <code>settings.json</code> dosyasından okunmaktadır. Değiştirmek için dosyayı güncelleyip GitHub'a göndermeniz yeterlidir.</p>
-                </div>
-            </div>
-        </div>
-        <!-- SAĞ SÜTUN: Puanlama Ağırlıkları (Sadece Gösterim) -->
-        <div class="col-lg-6">
-            <div class="card settings-card">
-                <div class="card-header">Aktif Puanlama Ağırlıkları</div>
-                <div class="card-body">
-                    <ul id="weights-list" class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">Yükleniyor...</li>
-                    </ul>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">Strateji ve Kontrol Paneli</div>
+                <div class="card-body p-4">
+                    <form method="POST" action="/">
+                        <div class="row g-4">
+                            <!-- SOL SÜTUN: Piyasa Durumu ve Risk Yönetimi -->
+                            <div class="col-lg-4">
+                                <h6 class="settings-section-header">Piyasa Genel Durumu</h6>
+                                <div class="text-center p-3 rounded bg-light">
+                                    <h5 class="card-title text-{{ market_status.color }}">{{ market_status.text }}</h5>
+                                    <p class="small text-muted mb-0">(BTC/TRY MA50'ye Göre)</p>
+                                </div>
+                                <hr class="my-4">
+                                <h6 class="settings-section-header">Risk & Sermaye</h6>
+                                <div class="mb-3">
+                                    <label for="total_capital" class="form-label">Toplam Sermaye (TL)</label>
+                                    <input type="number" step="1000" class="form-control" id="total_capital" name="total_capital" value="{{ settings.total_capital }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="risk_percent" class="form-label">İşlem Başına Risk (%)</label>
+                                    <input type="number" step="0.1" class="form-control" id="risk_percent" name="risk_percent" value="{{ settings.risk_percent }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="max_pos_percent" class="form-label">Maks. Pozisyon (%)</label>
+                                    <input type="number" step="1" class="form-control" id="max_pos_percent" name="max_pos_percent" value="{{ settings.max_pos_percent }}">
+                                </div>
+                            </div>
+                            
+                            <!-- ORTA VE SAĞ SÜTUNLAR: Puanlama Ağırlıkları -->
+                            <div class="col-lg-8">
+                                <h6 class="settings-section-header">Puanlama Ağırlıkları</h6>
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        {% for key, label in [
+                                            ('weight_ma', 'MA Kesişimi'), ('weight_rsi', 'RSI Seviyesi'), ('weight_volume', 'Hacim Artışı')
+                                        ] %}
+                                        <div class="mb-3">
+                                            <label for="{{ key }}" class="form-label">{{ label }} (%)</label>
+                                            <input type="number" step="5" class="form-control" id="{{ key }}" name="{{ key }}" value="{{ settings[key] }}">
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="col-lg-6">
+                                        {% for key, label in [
+                                            ('weight_macd', 'MACD'), ('weight_bb', 'Bollinger Band'), ('weight_adx', 'ADX')
+                                        ] %}
+                                        <div class="mb-3">
+                                            <label for="{{ key }}" class="form-label">{{ label }} (%)</label>
+                                            <input type="number" step="5" class="form-control" id="{{ key }}" name="{{ key }}" value="{{ settings[key] }}">
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-md-4 mx-auto">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">Ayarları Kaydet & Analizi Yenile</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -106,12 +157,8 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
-                    Analiz Sonuçları
-                </div>
+                <div class="card-header">Analiz Sonuçları</div>
                 <div class="card-body p-0">
-                    <div id="loading-indicator" class="text-center p-5"><div class="spinner-border"></div><p class="mt-2">Sonuçlar yükleniyor...</p></div>
-                    <div id="error-indicator" style="display: none;" class="text-center p-5"><p class="text-danger">Analiz verisi bulunamadı.</p></div>
                     <div class="table-responsive">
                         <table class="table table-hover table-bordered table-sm m-0">
                             <thead class="text-start">
@@ -120,7 +167,33 @@
                                 </tr>
                             </thead>
                             <tbody id="analysis-table-body" class="text-center align-middle">
-                                <!-- Veriler JavaScript ile eklenecek -->
+                                {% if coins %}
+                                    {% for coin in coins %}
+                                    <tr class="{% if coin.score >= 70 %}table-success{% elif coin.score >= 40 %}table-warning{% endif %}">
+                                        <td class="text-start"><strong>{{ coin.symbol }}</strong></td>
+                                        <td>{{ "%.2f"|format(coin.price) }}</td>
+                                        <td>{{ "%.2f"|format(coin.ma20 or 0) }}</td>
+                                        <td>{{ "%.2f"|format(coin.ma50 or 0) }}</td>
+                                        <td>{{ "%.2f"|format(coin.rsi or 0) }}</td>
+                                        <td>{{ "%.2f"|format(coin.macd or 0) }}</td>
+                                        <td>{{ "%.2f"|format(coin.macd_signal or 0) }}</td>
+                                        <td>{{ "%.2f"|format(coin.bb_lower or 0) }}</td>
+                                        <td>{{ "%.2f"|format(coin.bb_upper or 0) }}</td>
+                                        <td>{{ "%.2f"|format(coin.adx or 0) }}</td>
+                                        <td>{{ "%.4f"|format(coin.volatility) }}</td>
+                                        <td>{{ "%.2f"|format(coin.stop_loss) }}</td>
+                                        <td>{{ "{:,.0f}".format(coin.position_tl) }}</td>
+                                        <td class="fw-bold fs-6 text-primary">{{ "%.0f"|format(coin.score) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="14" class="p-5 text-center">
+                                            <p class="mb-1">Veri yükleniyor veya analiz için yeterli veri bekleniyor...</p>
+                                            <p class="text-muted small">Lütfen birkaç dakika sonra tekrar deneyin.</p>
+                                        </td>
+                                    </tr>
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>
@@ -129,91 +202,6 @@
         </div>
     </div>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Elementleri seçme
-        const tbody = document.getElementById('analysis-table-body');
-        const loading = document.getElementById('loading-indicator');
-        const error = document.getElementById('error-indicator');
-        const marketStatusEl = document.getElementById('market-status-text');
-        const weightsListEl = document.getElementById('weights-list');
-
-        // Analiz verilerini çekme
-        // DÜZELTME: new URL() kaldırıldı ve göreli yol doğrudan kullanıldı.
-        fetch('results.json?v=' + new Date().getTime())
-            .then(response => response.json())
-            .then(data => {
-                loading.style.display = 'none';
-                if (data && data.length > 0) {
-                    data.sort((a, b) => b.score - a.score);
-                    populateTable(data);
-                } else {
-                    error.style.display = 'block';
-                }
-            })
-            .catch(err => {
-                loading.style.display = 'none';
-                error.style.display = 'block';
-                console.error("Analiz verisi çekme hatası:", err);
-            });
-        
-        // Ayarları ve Piyasa Durumunu çekmek için app.py'ye yeni bir endpoint eklememiz gerekecek
-        // Şimdilik sadece ayarları göstermek için bir yapı oluşturalım.
-        // Bu, daha sonra geliştirilebilir.
-        // settings.json dosyasını çekip gösterelim:
-        // DÜZELTME: new URL() kaldırıldı ve göreli yol doğrudan kullanıldı.
-        fetch('settings.json')
-             .then(response => response.json())
-             .then(settings => {
-                weightsListEl.innerHTML = ''; // Temizle
-                const weights = {
-                    "MA Kesişimi": settings.weight_ma,
-                    "RSI Seviyesi": settings.weight_rsi,
-                    "Hacim Artışı": settings.weight_volume,
-                    "MACD": settings.weight_macd,
-                    "Bollinger Band": settings.weight_bb,
-                    "ADX": settings.weight_adx,
-                };
-                for(const [key, value] of Object.entries(weights)) {
-                    const li = `<li class="list-group-item d-flex justify-content-between align-items-center">
-                                    ${key}
-                                    <span class="badge bg-primary rounded-pill">${value}%</span>
-                                </li>`;
-                    weightsListEl.innerHTML += li;
-                }
-             })
-             .catch(err => {
-                weightsListEl.innerHTML = '<li class="list-group-item text-danger">Ayar dosyası okunamadı.</li>';
-             });
-
-        function populateTable(coins) {
-            tbody.innerHTML = ''; // Tabloyu temizle
-            coins.forEach(coin => {
-                const score = coin.score || 0;
-                const rowClass = score >= 70 ? 'table-success' : (score >= 40 ? 'table-warning' : '');
-                const row = `
-                    <tr class="${rowClass}">
-                        <td class="text-start"><strong>${coin.symbol}</strong></td>
-                        <td>${(coin.price || 0).toFixed(2)}</td>
-                        <td>${(coin.ma20 || 0).toFixed(2)}</td>
-                        <td>${(coin.ma50 || 0).toFixed(2)}</td>
-                        <td>${(coin.rsi || 0).toFixed(2)}</td>
-                        <td>${(coin.macd || 0).toFixed(2)}</td>
-                        <td>${(coin.macd_signal || 0).toFixed(2)}</td>
-                        <td>${(coin.bb_lower || 0).toFixed(2)}</td>
-                        <td>${(coin.bb_upper || 0).toFixed(2)}</td>
-                        <td>${(coin.adx || 0).toFixed(2)}</td>
-                        <td>${(coin.volatility || 0).toFixed(4)}</td>
-                        <td>${(coin.stop_loss || 0).toFixed(2)}</td>
-                        <td>${Math.round(coin.position_tl || 0).toLocaleString('tr-TR')}</td>
-                        <td class="fw-bold fs-6 text-primary">${score.toFixed(0)}</td>
-                    </tr>`;
-                tbody.innerHTML += row;
-            });
-        }
-    });
-</script>
 
 </body>
 </html>
