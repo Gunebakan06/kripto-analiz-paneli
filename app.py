@@ -1,20 +1,19 @@
 # =================================================================
-# === Kullanıcı Dostu Kripto Analiz Uygulaması - app.py ===
+# === Kullanıcı Dostu Kripto Analiz Uygulaması - app.py (OHLCV) ===
 # =================================================================
 from flask import Flask, render_template, request, redirect, url_for
 from apscheduler.schedulers.background import BackgroundScheduler
 import pandas as pd
 import logging
+import time
 
-# Loglamayı sadece temel hataları gösterecek şekilde ayarla
 logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.ERROR)
 
-from data_fetcher import fetch_all_try_data
-from database import init_db, save_data_to_db, cleanup_old_data, get_historical_data_as_df, save_settings, load_settings
+from data_fetcher import get_all_try_symbols, fetch_ohlcv_data
+from database import init_db, save_settings, load_settings
 from analyzer import calculate_indicators
 
-# Varsayılan Ayarlar
 DEFAULT_SETTINGS = {
     'total_capital': 100000.0, 'risk_percent': 1.0, 'max_pos_percent': 10.0,
     'weight_ma': 30, 'weight_rsi': 20, 'weight_volume': 15,
@@ -26,60 +25,58 @@ app = Flask(__name__)
 analysis_data = pd.DataFrame()
 market_status = {'text': 'Yükleniyor...', 'color': 'secondary'}
 
-# --- Ana analiz fonksiyonu ---
-def run_analysis():
+def run_full_analysis():
+    """Tüm pariteler için analiz yapan merkezi fonksiyon."""
     global analysis_data, market_status
-    print("Analiz çalıştırılıyor...")
+    print("Tam analiz döngüsü başlıyor...")
+    
     settings = load_settings(DEFAULT_SETTINGS)
-    df_hist = get_historical_data_as_df()
+    symbols = get_all_try_symbols()
+    all_results = []
 
-    if not df_hist.empty:
-        analysis_data = calculate_indicators(df_hist, settings)
-        print(f"Analiz sonucunda {len(analysis_data)} adet uygun coin bulundu.")
-
-        btc_data = df_hist[df_hist['symbol'] == 'BTCTRY']
-        if len(btc_data) > 50:
-            btc_price = btc_data['price'].iloc[-1]
-            btc_ma50 = btc_data['price'].rolling(window=50).mean().iloc[-1]
-            if btc_price > btc_ma50:
-                market_status = {'text': 'PİYASA YÜKSELİŞTE - ALIMA UYGUN', 'color': 'success'}
-            else:
-                market_status = {'text': 'PİYASA DÜŞÜŞTE - RİSKLİ', 'color': 'danger'}
+    for i, symbol_with_slash in enumerate(symbols):
+        print(f"Analiz ediliyor: {symbol_with_slash} ({i+1}/{len(symbols)})")
+        time.sleep(0.2) 
+        
+        coin_df = fetch_ohlcv_data(symbol_with_slash, timeframe='5m', limit=100)
+        
+        if coin_df is not None and not coin_df.empty:
+            result = calculate_indicators(coin_df, settings)
+            if result:
+                all_results.append(result)
+    
+    if all_results:
+        analysis_data = pd.DataFrame(all_results)
+        print(f"Analiz tamamlandı. {len(analysis_data)} adet uygun coin bulundu.")
+    else:
+        analysis_data = pd.DataFrame()
+        print("Analiz tamamlandı. Uygun coin bulunamadı.")
+    
+    btc_df = fetch_ohlcv_data('BTC/TRY', timeframe='5m', limit=50)
+    if btc_df is not None and not btc_df.empty:
+        btc_price = btc_df['close'].iloc[-1]
+        btc_ma50 = btc_df['close'].mean()
+        if btc_price > btc_ma50:
+            market_status = {'text': 'PİYASA YÜKSELİŞTE - ALIMA UYGUN', 'color': 'success'}
         else:
-            market_status = {'text': 'BTC Verisi Bekleniyor...', 'color': 'warning'}
-    print("Analiz tamamlandı.")
+            market_status = {'text': 'PİYASA DÜŞÜŞTE - RİSKLİ', 'color': 'danger'}
 
-# --- Arka plan zamanlayıcı görevi ---
-def job_background_task():
-    print("="*50)
-    print("Arka plan görevi başlıyor...")
-    df_current = fetch_all_try_data()
-    if not df_current.empty:
-        save_data_to_db(df_current)
-    run_analysis()
-    cleanup_old_data()
-    print("Arka plan görevi tamamlandı.")
-    print("="*50)
-
-# --- Ana Sayfa ---
 @app.route('/', methods=['GET', 'POST'])
 def dashboard():
     if request.method == 'POST':
-        current_settings = load_settings(DEFAULT_SETTINGS)
+        settings = load_settings(DEFAULT_SETTINGS)
         form = request.form
+        for key in settings:
+            try:
+                if isinstance(settings[key], float):
+                    settings[key] = float(form.get(key, settings[key]))
+                else:
+                    settings[key] = int(form.get(key, settings[key]))
+            except (ValueError, TypeError):
+                print(f"Formda geçersiz değer: {key}")
         
-        # --- GÜVENLİ FORM İŞLEME ---
-        for key in DEFAULT_SETTINGS:
-            form_value = form.get(key)
-            if form_value and form_value.strip(): # Değer boş değilse
-                try:
-                    # Değeri doğru tipe çevir (float veya int)
-                    current_settings[key] = float(form_value) if '.' in form_value else int(form_value)
-                except ValueError:
-                    print(f"Uyarı: Formdaki '{key}' değeri geçersiz, önceki değer korunuyor.")
-        
-        save_settings(current_settings)
-        run_analysis()
+        save_settings(settings)
+        run_full_analysis()
         return redirect(url_for('dashboard'))
 
     settings = load_settings(DEFAULT_SETTINGS)
@@ -92,20 +89,16 @@ def dashboard():
                            settings=settings,
                            market_status=market_status)
 
-# --- Kullanım Kılavuzu Sayfası ---
 @app.route('/guide')
 def guide():
     return render_template('guide.html')
 
-# --- Başlatıcı ---
 if __name__ == '__main__':
     init_db()
-    job_background_task()
+    run_full_analysis()
 
     scheduler = BackgroundScheduler(daemon=True)
-    scheduler.add_job(func=job_background_task, trigger="interval", minutes=5)
+    scheduler.add_job(func=run_full_analysis, trigger="interval", minutes=15)
     scheduler.start()
     
-    # Debug modunu kapatmak, zamanlayıcının iki kez çalışmasını engeller
-    # ve sistemi daha stabil hale getirir.
     app.run(host='0.0.0.0', port=5000, debug=False)
