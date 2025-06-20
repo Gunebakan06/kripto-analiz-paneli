@@ -14,7 +14,7 @@
             font-family: 'Inter', sans-serif;
         }
         .card {
-            border: none;
+            border: 1px solid #e9ecef; /* Sınırları belirginleştir */
             border-radius: 0.75rem;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
             height: 100%; 
@@ -71,6 +71,9 @@
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
             border-bottom: 1px solid #f0f2f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
     </style>
 </head>
@@ -117,7 +120,10 @@
                             
                             <!-- ORTA VE SAĞ SÜTUNLAR: Puanlama Ağırlıkları -->
                             <div class="col-lg-8">
-                                <h6 class="settings-section-header">Puanlama Ağırlıkları</h6>
+                                <h6 class="settings-section-header">
+                                    <span>Puanlama Ağırlıkları</span>
+                                    <small class="text-muted fw-normal">(Toplamları 100 olmalı)</small>
+                                </h6>
                                 <div class="row">
                                     <div class="col-lg-6">
                                         {% for key, label in [
@@ -140,11 +146,11 @@
                                         {% endfor %}
                                     </div>
                                 </div>
-                                <div class="row mt-4">
-                                    <div class="col-12">
-                                        <button type="submit" class="btn btn-primary btn-lg w-100">Ayarları Kaydet & Analizi Yenile</button>
-                                    </div>
-                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-md-4 mx-auto">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">Ayarları Kaydet & Analizi Yenile</button>
                             </div>
                         </div>
                     </form>
@@ -160,7 +166,7 @@
                 <div class="card-header">Analiz Sonuçları</div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover table-bordered table-sm m-0">
+                        <table class="table table-hover table-bordered table-sm m-0"> <!-- Sütun çizgileri için table-bordered eklendi -->
                             <thead class="text-start">
                                 <tr>
                                     <th>Parite</th><th>Fiyat</th><th>MA(20)</th><th>MA(50)</th><th>RSI</th><th>MACD</th><th>Sinyal</th><th>BB Alt</th><th>BB Üst</th><th>ADX</th><th>Volatilite</th><th>Stop</th><th>Pozisyon (TL)</th><th class="text-primary">Skor</th>
